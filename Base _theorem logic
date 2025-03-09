@@ -1,0 +1,88 @@
+Bacterial Leaf Blight (BLB) ( 1 )
+
+Images: 517
+Causative Agent: Bacteria
+Affected Plant Parts & Life Stages:
+Infects rice at both the seedling and mature stages
+Primarily targets the leaves
+Conditions in Sri Lanka:
+
+Occurs in both irrigated and rainfed lowland areas
+(Reference: Department of Agriculture Sri Lanka)
+Back-End Implementation (Python FastAPI):
+
+Data Collection:
+ESP32 sends sensor data: Temperature, Humidity, Nitrogen Level, Rice Variety
+Processing Function: BLB_pre_diseases()
+Farmer Input:
+Query with three questions:
+A: Is there an irrigation area near you?
+B: Is there any rainfed lowland?
+C: Is there any rainfed upland?
+Probability Calculations:
+
+Irrigation/Field Type:
+
+If A (only true): P(BLB/Irrigated) = 0.575
+If B (only true): P(BLB/Lowland) = 0.300
+If C (only true): P(BLB/Upland) = 0.175
+If (A, B) are true: P = 0.575
+If (A, C) are true: P = 0.575
+With priors:
+P(A) = 0.65
+P(B) = 0.25
+P(C) = 0.10
+Intersection:
+P(A∩C) = 0.065
+P(A∩B) = 0.150
+Temperature Conditions:
+
+< 20°C:
+P(BLB/<20°C) = 0.1; P(<20°C) = 0.075
+20–24°C:
+P(BLB/20–24°C) = 0.3; P(20–24°C) = 0.175
+25–34°C:
+P(BLB/25–34°C) = 0.7; P(25–34°C) = 0.650
+> 34°C:
+P(BLB/>34°C) = 0.4; P(>34°C) = 0.125
+Rice Variety (from Deepseek-R1):
+
+P(BLB | Naadu Samba) = 0.70
+P(BLB | Kiri Samba) = 0.60
+P(BLB | Ponni Samba) = 0.50
+P(BLB | Samba (sudu)) = 0.60
+P(BLB | Samba (rathu)) = 0.70
+P(BLB | Samba (kalu)) = 0.80
+P(BLB | Kalu Heenati) = 0.80
+P(BLB | Rathu Heenati) = 0.70
+P(BLB | Suwandel) = 0.70
+P(BLB | Mahayaraththa) = 0.80
+P(BLB | IR64) = 0.40
+P(BLB | BG 352) = 0.40
+P(BLB | BG 358) = 0.30
+Also, assume a uniform prior: P(Variety) = 1/13 ≈ 0.076
+Nitrogen Fertilizer Application:
+
+< 80 kg/ha:
+P(BLB / <80) = 0.15; P(<80) = 0.15
+80–120 kg/ha:
+P(BLB / 80–120) = 0.30; P(80–120) = 0.60
+> 120 kg/ha:
+P(BLB / >120) = 0.70; P(>120) = 0.25
+Humidity Conditions:
+
+< 70% RH:
+P(BLB / <70) = 0.15
+70–80% RH:
+P(BLB / 70–80) = 0.40
+> 80% RH:
+P(BLB / >80) = 0.80
+Additional humidity condition probabilities:
+Condition 1: 0.125
+Condition 2: 0.350
+Condition 3: 0.550
+Final Sensor Suite for BLB Detection:
+
+Temperature Sensor
+Nitrogen Sensor
+Humidity Sensor
