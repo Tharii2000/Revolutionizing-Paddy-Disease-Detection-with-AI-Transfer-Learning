@@ -1,0 +1,211 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models, Sequential
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+IMAGE_SIZE = 256
+BATCH_SIZE = 32
+EPOCHS = 50
+
+dataset = tf.keras.preprocessing.image_dataset_from_directory(
+    "Original Images",
+    shuffle=True,
+    image_size=(IMAGE_SIZE, IMAGE_SIZE),
+    batch_size=BATCH_SIZE,
+    seed=123
+)
+
+class_names = dataset.class_names
+print(class_names)
+
+for image, labels in dataset.take(1):
+    print(image.shape)
+    print(labels.numpy())
+
+plt.figure(figsize=(10, 10))
+for image_batch, labels_batch in dataset.take(1):
+    for i in range(12):
+        ax = plt.subplot(3, 4, i + 1)
+        plt.imshow(image_batch[i].numpy().astype("uint8"))
+        plt.title(class_names[labels_batch[i]])
+        plt.axis("off")
+plt.show()
+
+def data_parts(ds, train_split=0.8, val_split=0.1, test_split=0.1, shuffle=True, shuffle_size=10000):
+    assert (train_split + val_split + test_split) == 1
+    ds_size = len(ds)
+    if shuffle:
+        ds = ds.shuffle(shuffle_size, seed=12)
+    train_size = int(train_split * ds_size)
+    val_size = int(val_split * ds_size)
+    train_ds = ds.take(train_size)
+    val_ds = ds.skip(train_size).take(val_size)
+    test_ds = ds.skip(train_size).skip(val_size)
+    return train_ds, val_ds, test_ds
+
+train_ds, val_ds, test_ds = data_parts(dataset)
+
+plt.figure(figsize=(10, 10))
+for image_batch, labels_batch in train_ds.take(1):
+    for i in range(12):
+        ax = plt.subplot(3, 4, i + 1)
+        plt.imshow(image_batch[i].numpy().astype("uint8"))
+        plt.title(class_names[labels_batch[i]])
+        plt.axis("off")
+plt.show()
+
+resize_and_rescale = tf.keras.Sequential([
+    layers.experimental.preprocessing.Resizing(IMAGE_SIZE, IMAGE_SIZE),
+    layers.experimental.preprocessing.Rescaling(1./255)
+])
+
+input_shape = (BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, 3)
+model = models.Sequential([
+    resize_and_rescale,
+    layers.Conv2D(32, kernel_size=(3, 3), activation='relu', input_shape=input_shape),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, kernel_size=(3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, kernel_size=(3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+model.build(input_shape=input_shape)
+model.summary()
+
+model.compile(
+    optimizer='adam',
+    loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False),
+    metrics=['accuracy']
+)
+
+Tharindus_Custom_model = model.fit(
+    train_ds,
+    batch_size=32,
+    validation_data=val_ds,
+    verbose=1,
+    epochs=100,
+)
+
+test_data_set = model.evaluate(test_ds)
+print(test_data_set)
+
+print(Tharindus_Custom_model)
+print(Tharindus_Custom_model.params)
+print(Tharindus_Custom_model.history.keys())
+print(Tharindus_Custom_model.history)
+
+traning_data_Accurecy = Tharindus_Custom_model.history['accuracy']
+validation_data_Accurecy = Tharindus_Custom_model.history['val_accuracy']
+traning_data_Loss = Tharindus_Custom_model.history['loss']
+validation_data_Loss = Tharindus_Custom_model.history['val_loss']
+
+plt.figure(figsize=(16, 16))
+plt.subplot(2, 1, 1)
+plt.plot(range(100), traning_data_Accurecy, label='Training Accuracy', color='red')
+plt.plot(range(100), validation_data_Accurecy, label='Validation Accuracy', color='purple')
+plt.title('Training and Validation Accuracy')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
+
+plt.figure(figsize=(20, 20))
+plt.subplot(2, 1, 2)
+plt.plot(range(100), traning_data_Loss, label='Training Loss', color='red')
+plt.plot(range(100), validation_data_Loss, label='Validation Loss', color='purple')
+plt.title('Training and Validation Loss')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
+for test_batch, lable_batch in test_ds.take(1):
+    print(test_batch[0].numpy())
+    plt.figure(figsize=(5, 5))
+    plt.imshow(test_batch[0].numpy().astype("uint8"))
+    plt.show()
+
+for test_batch, lable_batch in test_ds.take(1):
+    lst_image = test_batch[0].numpy().astype("uint8")
+    lst_lable = lable_batch[0].numpy()
+    print("Try Shuffle image to predict =")
+    print("Real class number = ", lst_lable)
+    print("Real class name = ", class_names[lst_lable])
+    plt.imshow(lst_image)
+    plt.show()
+    test_batch_prediction = model.predict(test_batch)
+    print(test_batch_prediction[0])
+    print("prediction class number =", np.argmax(test_batch_prediction[0]))
+    print("prediction class name =", class_names[np.argmax(test_batch_prediction[0])])
+
+plt.figure(figsize=(15, 15))
+Collect_Test_images_list = []
+Collect_Test_labels_list = []
+for test_data, label_test_data in test_ds.take(6):
+    Collect_Test_images_list.extend(test_data.numpy())
+    Collect_Test_labels_list.extend(label_test_data.numpy())
+Collect_Test_images_to_array = np.array(Collect_Test_images_list)
+Collect_Test_labels_to_array = np.array(Collect_Test_labels_list)
+predictions = model.predict(Collect_Test_images_to_array)
+for i in range(36):
+    ax = plt.subplot(6, 6, i + 1)
+    actual_class = class_names[Collect_Test_labels_to_array[i]]
+    prediction_class = class_names[np.argmax(predictions[i])]
+    confidence = round(100 * np.max(predictions[i]), 2)
+    plt.imshow(Collect_Test_images_to_array[i].astype("uint8"))
+    plt.title(f"Actual: {actual_class}\nPredicted: {prediction_class}\nConfidence: {confidence}%", fontsize=12)
+    plt.axis("off")
+plt.tight_layout()
+plt.show()
+
+y_true = []
+y_pred = []
+for test_batch, label_batch in test_ds:
+    preds = model.predict(test_batch)
+    y_true.extend(label_batch.numpy())
+    y_pred.extend(np.argmax(preds, axis=1))
+y_true = np.array(y_true)
+y_pred = np.array(y_pred)
+
+cm = tf.math.confusion_matrix(y_true, y_pred)
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt="d", cmap='Blues', xticklabels=class_names, yticklabels=class_names)
+plt.title("Confusion Matrix")
+plt.ylabel("True Label")
+plt.xlabel("Predicted Label")
+plt.show()
+
+report = tf.keras.metrics.get_confusion_matrix
+from sklearn.metrics import classification_report
+report = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
+report_dict = {key: value for key, value in report.items() if key in class_names}
+precision = [report_dict[c]['precision'] for c in class_names]
+recall = [report_dict[c]['recall'] for c in class_names]
+f1_score = [report_dict[c]['f1-score'] for c in class_names]
+x = np.arange(len(class_names))
+width = 0.25
+plt.figure(figsize=(12, 6))
+plt.bar(x - width, precision, width, label='Precision', color='skyblue')
+plt.bar(x, recall, width, label='Recall', color='salmon')
+plt.bar(x + width, f1_score, width, label='F1-Score', color='lightgreen')
+plt.xticks(x, class_names, rotation=45, ha='right')
+plt.ylim([0, 1])
+plt.title("Classification Report Metrics by Class")
+plt.xlabel("Class")
+plt.ylabel("Score")
+plt.legend()
+plt.tight_layout()
+plt.show()
+
+model.save('My_Mooooooodels.h5')
